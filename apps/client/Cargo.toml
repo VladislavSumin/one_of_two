@@ -1,0 +1,10 @@
+[package]
+name = "one_of_two"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+client.workspace = true
+
+[lints]
+workspace = true
