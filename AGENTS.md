@@ -3,3 +3,21 @@
 ## Правила работы
 
 1. **Никогда не коммитить самостоятельно.** Не выполнять `git commit` / `git push` без явного запроса пользователя. Все изменения оставлять в рабочем дереве и сообщать, что готово к коммиту.
+2. **Двигаться по плану `docs/plan.md`** маленькими шагами (один коммит на шаг), согласовывая каждый шаг с пользователем перед выполнением.
+
+## Проект
+
+- Rust workspace. `crates/` — библиотеки (вся логика), `apps/` — тонкие бинари (только `main.rs`).
+- `crates/simulation` — чистая логика мира, БЕЗ Bevy (сервер-ready). `crates/client` — Bevy-клиент (lib). `apps/client` — бинарь `one_of_two`.
+- Движок: Bevy 0.19.1. Тулчейн: `rust-toolchain.toml` (1.98.1 + rustfmt/clippy).
+
+## Команды (just)
+
+- `just fmt` / `just fmt-check` — форматирование
+- `just check` — `cargo check --workspace --all-targets`
+- `just clippy` — clippy `-D warnings`
+- `just test` — все тесты
+- `just doc` — документация
+- `just run` — запустить игру
+
+Те же команды гоняет CI (`.github/workflows/ci.yml`, ubuntu-24.04). Перед сдачей шага должны быть зелёными `just fmt-check && just clippy && just test && just doc`.

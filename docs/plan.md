@@ -7,6 +7,15 @@
 - **Мультиплеер:** в MVP не пишем, но симуляция отделена от рендера, чтобы сеть встала между ними без переписывания.
 - **Тулинг:** максимум — юнит-тесты ядра, инструменты отладки, CI с первого коммита.
 
+## Статус выполнения
+
+- [x] **Фаза A — Workspace + тулинг (коммиты 1–6)** — готово.
+  - `b9b9b49` гигиена · `d4682d5` структура крейтов · `3f40321` rust-toolchain · `e4c8a7b` Justfile · `c69d539` CI · `532ae8b` Bevy-окно
+- [ ] Фаза B — Ядро симуляции (7–16)
+- [ ] Фаза C — Рендер и геймплей (17–26)
+- [ ] Фаза D — Инструменты отладки (27–31)
+- [ ] Фаза E — Харденинг и полировка (32–36)
+
 ## Архитектура
 
 ### Принцип: вся логика — библиотеки, бинари — тонкие
@@ -91,9 +100,9 @@ apps/
 1. **Гигиена проекта** — `.gitignore`, `.editorconfig`, `rustfmt.toml` (единый стиль).
 2. **Workspace** — корневой `Cargo.toml`: `[workspace]`, `[workspace.package]`, `[workspace.dependencies]` (все версии в одном месте), `[workspace.lints]` (clippy `pedantic`+избранные, `rustdoc`). `members = ["crates/*", "apps/*"]`. Пустые крейты `crates/simulation` (lib), `crates/client` (lib) и `apps/client` (bin).
 3. **`rust-toolchain.toml`** — пин канала + `rustfmt`, `clippy` (воспроизводимые сборки на всех машинах).
-4. **`Justfile`** — `just fmt / check / clippy / test / test-core / run / doc / profile`.
-5. **CI** — `.github/workflows/ci.yml`: `fmt --check`, `clippy -D warnings`, `test`, `cargo doc` + кэш (sccache). Красный CI блокирует merge.
-6. **Hello-world** — `apps/client` (тонкий `main.rs`) открывает пустое Bevy-окно через `crates/client::run()`; `crates/simulation` — пустая lib с тривиальным тестом. CI зелёный → база готова.
+4. **`Justfile`** — `just` (default = список) + `fmt` / `fmt-check` / `check` / `clippy` / `test` / `doc` / `run`. Набор сокращён (`test-core`/`run-release`/`profile`/`bench` — добавим по необходимости).
+5. **CI** — `.github/workflows/ci.yml`: `ubuntu-24.04`, `dtolnay/rust-toolchain` (читает `rust-toolchain.toml`, без дублирования версии), `taiki-e/install-action` (just), `Swatinem/rust-cache`; шаги `just fmt-check / clippy / test / doc`. Branch protection на `master` включается вручную.
+6. **Hello-world** — `apps/client` (тонкий `main.rs`) открывает пустое Bevy-окно через `crates/client::run()`; `crates/simulation` — первый тест; Bevy 0.19.1 (default features). В CI добавлен apt-шаг для системных зависимостей Bevy на Linux.
 
 ### Фаза B — Ядро симуляции (коммиты 7–16)
 
