@@ -9,6 +9,7 @@ edition = "2021"
 [workspace.dependencies]
 simulation = { path = "crates/simulation" }
 client = { path = "crates/client" }
+bevy = "0.19.1"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
