@@ -15,11 +15,9 @@ const CLEAR_COLOR: Color = Color::srgb_u8(135, 206, 250);
 /// Запускает игровой клиент.
 pub fn run() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins((DefaultPlugins, camera::CameraControllerPlugin))
         .insert_resource(ClearColor(CLEAR_COLOR))
-        .add_systems(Startup, (camera::setup, setup_light, spawn_hardcoded_chunk))
-        .add_systems(Update, (camera::look, camera::fly).chain())
-        .add_systems(Update, camera::toggle_cursor)
+        .add_systems(Startup, (setup_light, spawn_hardcoded_chunk))
         .run();
 }
 

@@ -1,7 +1,7 @@
-//! Полётная first-person камера: WASD + мышь, без коллизий.
+//! Контроллер first-person камеры: WASD + мышь, без коллизий.
 //!
-//! Временное управление для проверки рендера: полёт в 6DoF и обзор мышью.
-//! Коллизии появятся в фазе E.
+//! Сейчас — только полёт для проверки рендера. В фазе E добавятся коллизии,
+//! гравитация и режим полёт/ходьба.
 
 // Системные параметры Bevy (`Res`, `Time`, …) обязаны передаваться по значению;
 // clippy-линт здесь — ложное срабатывание.
@@ -20,14 +20,27 @@ const PITCH_LIMIT: f32 = std::f32::consts::FRAC_PI_2 - 0.01;
 /// Начальный наклон вниз, чтобы видеть платформу.
 const START_PITCH: f32 = -0.4;
 
-/// Углы обзора полётной камеры.
+/// Плагин контроллера камеры: спавн, обзор, полёт, захват курсора.
+pub struct CameraControllerPlugin;
+
+impl Plugin for CameraControllerPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Startup, setup)
+            .add_systems(Update, (look, fly).chain())
+            .add_systems(Update, toggle_cursor);
+    }
+}
+
+/// Состояние контроллера камеры: углы обзора.
+///
+/// Позже расширится скоростью/режимом полёта при добавлении физики.
 #[derive(Component)]
-pub struct FlyingCamera {
+pub struct CameraController {
     yaw: f32,
     pitch: f32,
 }
 
-impl Default for FlyingCamera {
+impl Default for CameraController {
     fn default() -> Self {
         Self {
             yaw: 0.0,
@@ -36,20 +49,20 @@ impl Default for FlyingCamera {
     }
 }
 
-impl FlyingCamera {
+impl CameraController {
     /// Ориентация камеры по текущим углам (порядок YXZ: yaw, затем pitch).
     fn rotation(&self) -> Quat {
         Quat::from_euler(EulerRot::YXZ, self.yaw, self.pitch, 0.0)
     }
 }
 
-/// Спавнит полётную камеру и захватывает курсор.
-pub fn setup(mut commands: Commands, mut cursor: Query<&mut CursorOptions>) {
-    let camera = FlyingCamera::default();
-    let rotation = camera.rotation();
+/// Спавнит камеру и захватывает курсор.
+fn setup(mut commands: Commands, mut cursor: Query<&mut CursorOptions>) {
+    let controller = CameraController::default();
+    let rotation = controller.rotation();
     commands.spawn((
         Camera3d::default(),
-        camera,
+        controller,
         Transform::from_xyz(0.0, 8.0, 16.0).with_rotation(rotation),
     ));
 
@@ -60,10 +73,10 @@ pub fn setup(mut commands: Commands, mut cursor: Query<&mut CursorOptions>) {
 }
 
 /// Обзор мышью: движение мыши меняет yaw/pitch (только при захваченном курсоре).
-pub fn look(
+fn look(
     cursor: Query<&CursorOptions>,
     mut motion: MessageReader<MouseMotion>,
-    mut query: Query<(&mut Transform, &mut FlyingCamera), With<Camera3d>>,
+    mut query: Query<(&mut Transform, &mut CameraController), With<Camera3d>>,
 ) {
     let mut delta = Vec2::ZERO;
     for event in motion.read() {
@@ -75,18 +88,19 @@ pub fn look(
         return;
     }
 
-    for (mut transform, mut camera) in &mut query {
-        camera.yaw -= delta.x * LOOK_SENSITIVITY;
-        camera.pitch = (camera.pitch - delta.y * LOOK_SENSITIVITY).clamp(-PITCH_LIMIT, PITCH_LIMIT);
-        transform.rotation = camera.rotation();
+    for (mut transform, mut controller) in &mut query {
+        controller.yaw -= delta.x * LOOK_SENSITIVITY;
+        controller.pitch =
+            (controller.pitch - delta.y * LOOK_SENSITIVITY).clamp(-PITCH_LIMIT, PITCH_LIMIT);
+        transform.rotation = controller.rotation();
     }
 }
 
 /// Полёт: WASD — параллельно земле, Space/Shift — вверх/вниз.
-pub fn fly(
+fn fly(
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
-    mut query: Query<&mut Transform, With<FlyingCamera>>,
+    mut query: Query<&mut Transform, With<CameraController>>,
 ) {
     for mut transform in &mut query {
         let mut forward = *transform.forward();
@@ -117,7 +131,7 @@ pub fn fly(
 }
 
 /// Переключает захват курсора по `Escape` (чтобы можно было закрыть окно).
-pub fn toggle_cursor(keys: Res<ButtonInput<KeyCode>>, mut cursor: Query<&mut CursorOptions>) {
+fn toggle_cursor(keys: Res<ButtonInput<KeyCode>>, mut cursor: Query<&mut CursorOptions>) {
     if !keys.just_pressed(KeyCode::Escape) {
         return;
     }
