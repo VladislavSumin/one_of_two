@@ -1,0 +1,9 @@
+disallowed-types = [
+    { path = "std::collections::HashMap", reason = "use hashbrown::HashMap instead" },
+    { path = "std::collections::HashSet", reason = "use hashbrown::HashSet instead" },
+]
+
+disallowed-methods = [
+    { path = "std::collections::HashMap::new", reason = "use hashbrown::HashMap::new instead" },
+    { path = "std::collections::HashSet::new", reason = "use hashbrown::HashSet::new instead" },
+]

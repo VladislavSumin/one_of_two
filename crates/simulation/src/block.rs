@@ -1,6 +1,6 @@
 //! Блоки: числовые хэндлы и их свойства.
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 use crate::id::ResourceId;
 

@@ -124,7 +124,7 @@ fn to_local(coord: i32) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
+    use hashbrown::HashSet;
 
     #[test]
     fn chunk_origin() {

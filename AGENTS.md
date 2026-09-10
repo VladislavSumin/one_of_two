@@ -14,6 +14,7 @@
 - Rust workspace. `crates/` — библиотеки (вся логика), `apps/` — тонкие бинари (только `main.rs`).
 - `crates/simulation` — чистая логика мира, БЕЗ Bevy (сервер-ready). `crates/client` — Bevy-клиент (lib). `apps/client` — бинарь `one_of_two`.
 - Движок: Bevy 0.19.1. Тулчейн: `rust-toolchain.toml` (1.98.1 + rustfmt/clippy).
+- Коллекции: `hashbrown::HashMap`/`HashSet` вместо `std`-версий (запрет — clippy `disallowed_types`/`disallowed_methods` в `clippy.toml`).
 
 ## Команды (just)
 
