@@ -8,6 +8,7 @@ use simulation::chunk::Chunk;
 use simulation::coord::{LocalPos, CHUNK_SIZE_U8};
 
 pub mod camera;
+pub mod debug;
 
 /// Цвет фона (неба), очищающий экран каждый кадр.
 const CLEAR_COLOR: Color = Color::srgb_u8(135, 206, 250);
@@ -15,7 +16,11 @@ const CLEAR_COLOR: Color = Color::srgb_u8(135, 206, 250);
 /// Запускает игровой клиент.
 pub fn run() {
     App::new()
-        .add_plugins((DefaultPlugins, camera::CameraControllerPlugin))
+        .add_plugins((
+            DefaultPlugins,
+            camera::CameraControllerPlugin,
+            debug::DebugPanelPlugin,
+        ))
         .insert_resource(ClearColor(CLEAR_COLOR))
         .add_systems(Startup, (setup_light, spawn_hardcoded_chunk))
         .run();

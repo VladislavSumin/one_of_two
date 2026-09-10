@@ -29,3 +29,7 @@ doc:
 # Запустить игру
 run:
     cargo run -p one_of_two
+
+# Запустить игру в release (проверка производительности)
+run-release:
+    cargo run -p one_of_two --release
