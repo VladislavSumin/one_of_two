@@ -7,6 +7,12 @@
 /// Длина ребра чанка в блоках. Чанк кубический: `CHUNK_SIZE` × `CHUNK_SIZE` × `CHUNK_SIZE`.
 pub const CHUNK_SIZE: i32 = 16;
 
+/// [`CHUNK_SIZE`] как `usize` — для индексной математики.
+const CHUNK_SIZE_USIZE: usize = CHUNK_SIZE as usize;
+
+/// Количество блоков в одном чанке (`CHUNK_SIZE`³).
+pub const CHUNK_VOLUME: usize = CHUNK_SIZE_USIZE * CHUNK_SIZE_USIZE * CHUNK_SIZE_USIZE;
+
 /// Глобальная позиция блока в мире.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct BlockPos {
@@ -96,6 +102,17 @@ impl LocalPos {
         debug_assert!(i32::from(y) < CHUNK_SIZE);
         debug_assert!(i32::from(z) < CHUNK_SIZE);
         Self { x, y, z }
+    }
+
+    /// Плоский индекс клетки в чанке: `x + CHUNK_SIZE*(z + CHUNK_SIZE*y)`.
+    ///
+    /// `x` — самый младший (быстрый), `y` — самый старший: перебор `for y { for z
+    /// { for x } }` даёт последовательный доступ к памяти.
+    #[must_use]
+    pub fn to_index(self) -> usize {
+        usize::from(self.x)
+            + usize::from(self.z) * CHUNK_SIZE_USIZE
+            + usize::from(self.y) * CHUNK_SIZE_USIZE * CHUNK_SIZE_USIZE
     }
 }
 
@@ -190,5 +207,36 @@ mod tests {
         set.insert(ChunkPos::new(1, 0, 0));
         assert!(set.contains(&ChunkPos::new(1, 0, 0)));
         assert!(!set.contains(&ChunkPos::new(0, 0, 1)));
+    }
+
+    #[test]
+    fn chunk_size_constants_agree() {
+        assert_eq!(usize::try_from(CHUNK_SIZE), Ok(CHUNK_SIZE_USIZE));
+        assert_eq!(CHUNK_VOLUME, 4096);
+    }
+
+    #[test]
+    fn to_index_corners() {
+        assert_eq!(LocalPos::new(0, 0, 0).to_index(), 0);
+        assert_eq!(LocalPos::new(15, 15, 15).to_index(), 4095);
+        assert_eq!(LocalPos::new(1, 0, 0).to_index(), 1);
+        assert_eq!(LocalPos::new(0, 0, 1).to_index(), 16);
+        assert_eq!(LocalPos::new(0, 1, 0).to_index(), 256);
+    }
+
+    #[test]
+    fn to_index_is_a_bijection() {
+        let mut seen = [false; CHUNK_VOLUME];
+        for y in 0..16u8 {
+            for z in 0..16u8 {
+                for x in 0..16u8 {
+                    let idx = LocalPos::new(x, y, z).to_index();
+                    assert!(idx < CHUNK_VOLUME, "index out of range: {idx}");
+                    assert!(!seen[idx], "duplicate index: {idx}");
+                    seen[idx] = true;
+                }
+            }
+        }
+        assert!(seen.iter().all(|&b| b), "not all indices were produced");
     }
 }
