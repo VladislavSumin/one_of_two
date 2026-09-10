@@ -35,9 +35,19 @@ fn customize_egui_context(trigger: On<Add, EguiContext>, mut contexts: Query<&mu
 }
 
 /// Состояние панели: видимость (переключается по F3).
-#[derive(Resource, Default)]
+///
+/// По умолчанию включена в debug-сборке и выключена в release.
+#[derive(Resource)]
 struct DebugPanel {
     visible: bool,
+}
+
+impl Default for DebugPanel {
+    fn default() -> Self {
+        Self {
+            visible: cfg!(debug_assertions),
+        }
+    }
 }
 
 /// Переключает видимость панели по F3.
