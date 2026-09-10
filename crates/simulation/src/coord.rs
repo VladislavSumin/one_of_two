@@ -13,7 +13,7 @@ const CHUNK_SIZE_USIZE: usize = CHUNK_SIZE as usize;
 /// [`CHUNK_SIZE`] как `u8` — для итерации по локальным координатам.
 // Значение — положительная константа 16, укладывается в u8.
 #[allow(clippy::cast_possible_truncation)]
-pub(crate) const CHUNK_SIZE_U8: u8 = CHUNK_SIZE as u8;
+pub const CHUNK_SIZE_U8: u8 = CHUNK_SIZE as u8;
 
 /// Количество блоков в одном чанке (`CHUNK_SIZE`³).
 pub const CHUNK_VOLUME: usize = CHUNK_SIZE_USIZE * CHUNK_SIZE_USIZE * CHUNK_SIZE_USIZE;
