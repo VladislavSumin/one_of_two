@@ -71,46 +71,31 @@ pub struct BuiltinBlocks {
     pub planks: BlockId,
 }
 
-/// Реестр блоков.
-#[derive(Debug, Clone)]
-pub struct BlockRegistry {
+/// Фаза накопления: регистрирует блоки до «заморозки» в [`BlockRegistry`].
+///
+/// Единственная точка, где набор блоков изменяем. После [`Self::build`] реестр
+/// неизменяем — это требование будущей генерации атласов.
+#[derive(Debug, Default)]
+pub struct BlockRegistryBuilder {
     blocks: Vec<Block>,
     by_id: HashMap<ResourceId, BlockId>,
 }
 
-impl BlockRegistry {
-    /// Воздух — отсутствие блока. Всегда id `0`.
-    pub const AIR: BlockId = BlockId::new(0);
-    /// Заглушка для неизвестных/повреждённых id. Всегда id `1`.
-    pub const UNKNOWN: BlockId = BlockId::new(1);
-
+impl BlockRegistryBuilder {
+    /// Пустой аккумулятор. Встроенные блоки добавляются через
+    /// [`Self::with_builtins`].
     #[must_use]
     pub fn new() -> Self {
-        let mut registry = Self {
-            blocks: Vec::new(),
-            by_id: HashMap::new(),
-        };
-        // Порядок фиксирует инварианты AIR == 0, UNKNOWN == 1.
-        registry.register(Block::new(ResourceId::builtin("air"), false, false));
-        registry.register(Block::new(ResourceId::builtin("unknown"), true, true));
-        for block in builtin_blocks() {
-            registry.register(block);
-        }
-        registry
+        Self::default()
     }
 
     /// Регистрирует блок и возвращает числовой id.
-    ///
-    /// Приватный: реестр нельзя изменять после [`BlockRegistry::new`], иначе
-    /// нарушатся будущие инварианты (например, генерация атласов). До появления
-    /// специальной фазы инициализации регистрация доступна только внутри
-    /// конструктора.
     ///
     /// # Panics
     ///
     /// В debug-сборке паникует при повторной регистрации того же id; паникует
     /// при переполнении числового пространства (`u16`).
-    fn register(&mut self, block: Block) -> BlockId {
+    pub fn register(&mut self, block: Block) -> BlockId {
         debug_assert!(
             !self.by_id.contains_key(&block.id),
             "duplicate block id: {}",
@@ -121,6 +106,62 @@ impl BlockRegistry {
         self.blocks.push(block);
         id
     }
+
+    /// Регистрирует воздух, заглушку `unknown` и встроенные блоки.
+    ///
+    /// Порядок фиксирует инварианты [`BlockRegistry::AIR`] == 0,
+    /// [`BlockRegistry::UNKNOWN`] == 1.
+    #[must_use]
+    pub fn with_builtins(mut self) -> Self {
+        self.register(Block::new(ResourceId::builtin("air"), false, false));
+        self.register(Block::new(ResourceId::builtin("unknown"), true, true));
+        for block in builtin_blocks() {
+            self.register(block);
+        }
+        self
+    }
+
+    /// Замораживает реестр: после этого набор блоков неизменяем.
+    ///
+    /// # Panics
+    ///
+    /// Паникует, если отсутствуют встроенные блоки (реестр без них не имеет
+    /// смысла).
+    #[must_use]
+    pub fn build(self) -> BlockRegistry {
+        debug_assert_eq!(
+            self.by_id.get(&ResourceId::builtin("air")),
+            Some(&BlockRegistry::AIR),
+            "air must be the first registered block"
+        );
+        debug_assert_eq!(
+            self.by_id.get(&ResourceId::builtin("unknown")),
+            Some(&BlockRegistry::UNKNOWN),
+            "unknown must be the second registered block"
+        );
+        let builtin = resolve_builtin(&self.by_id);
+        BlockRegistry {
+            blocks: self.blocks,
+            by_id: self.by_id,
+            builtin,
+        }
+    }
+}
+
+/// Реестр блоков. Неизменяем после создания: изменение возможно только через
+/// [`BlockRegistryBuilder`] до [`BlockRegistryBuilder::build`].
+#[derive(Debug, Clone)]
+pub struct BlockRegistry {
+    blocks: Vec<Block>,
+    by_id: HashMap<ResourceId, BlockId>,
+    builtin: BuiltinBlocks,
+}
+
+impl BlockRegistry {
+    /// Воздух — отсутствие блока. Всегда id `0`.
+    pub const AIR: BlockId = BlockId::new(0);
+    /// Заглушка для неизвестных/повреждённых id. Всегда id `1`.
+    pub const UNKNOWN: BlockId = BlockId::new(1);
 
     /// Свойства по id. Неизвестный id → блок-заглушка [`BlockRegistry::UNKNOWN`].
     #[must_use]
@@ -136,43 +177,11 @@ impl BlockRegistry {
         self.by_id.get(id).copied()
     }
 
-    /// Разрешает встроенные блоки в типизированную структуру.
-    ///
-    /// # Panics
-    ///
-    /// Паникует, если встроенный блок отсутствует (невозможно при
-    /// [`BlockRegistry::new`]).
+    /// Встроенные блоки как типизированная структура (закэшировано при
+    /// [`BlockRegistryBuilder::build`]).
     #[must_use]
     pub fn builtin_blocks(&self) -> BuiltinBlocks {
-        BuiltinBlocks {
-            air: self
-                .get_id(&ResourceId::builtin("air"))
-                .expect("builtin air"),
-            grass: self
-                .get_id(&ResourceId::builtin("grass"))
-                .expect("builtin grass"),
-            dirt: self
-                .get_id(&ResourceId::builtin("dirt"))
-                .expect("builtin dirt"),
-            stone: self
-                .get_id(&ResourceId::builtin("stone"))
-                .expect("builtin stone"),
-            sand: self
-                .get_id(&ResourceId::builtin("sand"))
-                .expect("builtin sand"),
-            water: self
-                .get_id(&ResourceId::builtin("water"))
-                .expect("builtin water"),
-            wood: self
-                .get_id(&ResourceId::builtin("wood"))
-                .expect("builtin wood"),
-            leaves: self
-                .get_id(&ResourceId::builtin("leaves"))
-                .expect("builtin leaves"),
-            planks: self
-                .get_id(&ResourceId::builtin("planks"))
-                .expect("builtin planks"),
-        }
+        self.builtin
     }
 
     #[must_use]
@@ -196,9 +205,30 @@ impl BlockRegistry {
     }
 }
 
-impl Default for BlockRegistry {
-    fn default() -> Self {
-        Self::new()
+/// Разрешает встроенные блоки в типизированную структуру по таблице
+/// «канонический id → числовой id».
+///
+/// # Panics
+///
+/// Паникует, если какой-то встроенный блок не зарегистрирован.
+#[must_use]
+fn resolve_builtin(by_id: &HashMap<ResourceId, BlockId>) -> BuiltinBlocks {
+    let id = |path: &str| {
+        by_id
+            .get(&ResourceId::builtin(path))
+            .copied()
+            .unwrap_or_else(|| panic!("builtin block not registered: {path}"))
+    };
+    BuiltinBlocks {
+        air: id("air"),
+        grass: id("grass"),
+        dirt: id("dirt"),
+        stone: id("stone"),
+        sand: id("sand"),
+        water: id("water"),
+        wood: id("wood"),
+        leaves: id("leaves"),
+        planks: id("planks"),
     }
 }
 
@@ -206,9 +236,13 @@ impl Default for BlockRegistry {
 mod tests {
     use super::*;
 
+    fn registry() -> BlockRegistry {
+        BlockRegistryBuilder::new().with_builtins().build()
+    }
+
     #[test]
     fn air_and_unknown_are_reserved_first() {
-        let reg = BlockRegistry::new();
+        let reg = registry();
         assert_eq!(BlockRegistry::AIR.raw(), 0);
         assert_eq!(BlockRegistry::UNKNOWN.raw(), 1);
         assert_eq!(
@@ -225,7 +259,7 @@ mod tests {
 
     #[test]
     fn builtin_ids_resolve() {
-        let reg = BlockRegistry::new();
+        let reg = registry();
         for path in [
             "grass", "dirt", "stone", "sand", "water", "wood", "leaves", "planks",
         ] {
@@ -238,7 +272,7 @@ mod tests {
 
     #[test]
     fn solid_and_opaque_flags() {
-        let reg = BlockRegistry::new();
+        let reg = registry();
         for path in ["grass", "dirt", "stone", "sand", "wood", "planks"] {
             let id = reg.get_id(&ResourceId::builtin(path)).unwrap();
             assert!(reg.is_solid(id), "{path} should be solid");
@@ -254,7 +288,7 @@ mod tests {
 
     #[test]
     fn builtin_blocks_resolve_to_distinct_ids() {
-        let reg = BlockRegistry::new();
+        let reg = registry();
         let blocks = reg.builtin_blocks();
         assert_eq!(blocks.air, BlockRegistry::AIR);
         assert_eq!(reg.get(blocks.grass).id.path(), "grass");
@@ -264,7 +298,7 @@ mod tests {
 
     #[test]
     fn unknown_id_returns_unknown_block_not_air() {
-        let reg = BlockRegistry::new();
+        let reg = registry();
         let bogus = BlockId::new(999);
         let block = reg.get(bogus);
         assert_eq!(block.id, ResourceId::builtin("unknown"));
@@ -274,8 +308,9 @@ mod tests {
 
     #[test]
     fn register_custom_block_is_dense_and_reversible() {
-        let mut reg = BlockRegistry::new();
-        let id = reg.register(Block::new(ResourceId::new("mod", "copper"), true, true));
+        let mut builder = BlockRegistryBuilder::new().with_builtins();
+        let id = builder.register(Block::new(ResourceId::new("mod", "copper"), true, true));
+        let reg = builder.build();
         assert_eq!(reg.get(id).id, ResourceId::new("mod", "copper"));
         assert_eq!(reg.get_id(&ResourceId::new("mod", "copper")), Some(id));
         assert_eq!(reg.len(), 11); // 2 reserved + 8 builtin + 1 custom

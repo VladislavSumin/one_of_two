@@ -117,11 +117,15 @@ impl TerrainGenerator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::block::BlockRegistry;
+    use crate::block::BlockRegistryBuilder;
     use crate::coord::{BlockPos, ChunkPos};
 
     fn generator(seed: u64) -> TerrainGenerator {
-        TerrainGenerator::new(seed, BlockRegistry::new().builtin_blocks())
+        let blocks = BlockRegistryBuilder::new()
+            .with_builtins()
+            .build()
+            .builtin_blocks();
+        TerrainGenerator::new(seed, blocks)
     }
 
     #[test]

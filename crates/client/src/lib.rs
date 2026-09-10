@@ -3,7 +3,7 @@
 use bevy::asset::RenderAssetUsages;
 use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
-use simulation::block::{BlockRegistry, BuiltinBlocks};
+use simulation::block::{BlockRegistry, BlockRegistryBuilder, BuiltinBlocks};
 use simulation::chunk::Chunk;
 use simulation::coord::{LocalPos, CHUNK_SIZE_U8};
 
@@ -49,7 +49,10 @@ fn spawn_hardcoded_chunk(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let blocks = BlockRegistry::new().builtin_blocks();
+    let blocks = BlockRegistryBuilder::new()
+        .with_builtins()
+        .build()
+        .builtin_blocks();
     let chunk = hardcoded_chunk(blocks);
     let mesh = chunk_to_mesh(&chunk);
     let material = materials.add(StandardMaterial {
