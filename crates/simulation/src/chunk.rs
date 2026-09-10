@@ -62,7 +62,7 @@ impl Chunk {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::coord::LocalPos;
+    use crate::coord::{LocalPos, CHUNK_SIZE_U8};
 
     fn pos(x: u8, y: u8, z: u8) -> LocalPos {
         LocalPos::new(x, y, z)
@@ -71,9 +71,9 @@ mod tests {
     #[test]
     fn empty_chunk_is_all_air() {
         let chunk = Chunk::empty();
-        for y in 0..16u8 {
-            for z in 0..16u8 {
-                for x in 0..16u8 {
+        for y in 0..CHUNK_SIZE_U8 {
+            for z in 0..CHUNK_SIZE_U8 {
+                for x in 0..CHUNK_SIZE_U8 {
                     assert_eq!(chunk.get(pos(x, y, z)), BlockRegistry::AIR);
                 }
             }
@@ -129,17 +129,17 @@ mod tests {
     #[test]
     fn full_cube_round_trip() {
         let mut chunk = Chunk::empty();
-        for y in 0..16u8 {
-            for z in 0..16u8 {
-                for x in 0..16u8 {
+        for y in 0..CHUNK_SIZE_U8 {
+            for z in 0..CHUNK_SIZE_U8 {
+                for x in 0..CHUNK_SIZE_U8 {
                     let id = BlockId::new(u16::from((x + y + z) % 8) + 2);
                     chunk.set(pos(x, y, z), id);
                 }
             }
         }
-        for y in 0..16u8 {
-            for z in 0..16u8 {
-                for x in 0..16u8 {
+        for y in 0..CHUNK_SIZE_U8 {
+            for z in 0..CHUNK_SIZE_U8 {
+                for x in 0..CHUNK_SIZE_U8 {
                     let id = BlockId::new(u16::from((x + y + z) % 8) + 2);
                     assert_eq!(chunk.get(pos(x, y, z)), id);
                 }

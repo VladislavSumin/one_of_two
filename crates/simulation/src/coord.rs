@@ -10,6 +10,11 @@ pub const CHUNK_SIZE: i32 = 16;
 /// [`CHUNK_SIZE`] как `usize` — для индексной математики.
 const CHUNK_SIZE_USIZE: usize = CHUNK_SIZE as usize;
 
+/// [`CHUNK_SIZE`] как `u8` — для итерации по локальным координатам.
+// Значение — положительная константа 16, укладывается в u8.
+#[allow(clippy::cast_possible_truncation)]
+pub(crate) const CHUNK_SIZE_U8: u8 = CHUNK_SIZE as u8;
+
 /// Количество блоков в одном чанке (`CHUNK_SIZE`³).
 pub const CHUNK_VOLUME: usize = CHUNK_SIZE_USIZE * CHUNK_SIZE_USIZE * CHUNK_SIZE_USIZE;
 
@@ -212,6 +217,7 @@ mod tests {
     #[test]
     fn chunk_size_constants_agree() {
         assert_eq!(usize::try_from(CHUNK_SIZE), Ok(CHUNK_SIZE_USIZE));
+        assert_eq!(u8::try_from(CHUNK_SIZE), Ok(CHUNK_SIZE_U8));
         assert_eq!(CHUNK_VOLUME, 4096);
     }
 
@@ -227,9 +233,9 @@ mod tests {
     #[test]
     fn to_index_is_a_bijection() {
         let mut seen = [false; CHUNK_VOLUME];
-        for y in 0..16u8 {
-            for z in 0..16u8 {
-                for x in 0..16u8 {
+        for y in 0..CHUNK_SIZE_U8 {
+            for z in 0..CHUNK_SIZE_U8 {
+                for x in 0..CHUNK_SIZE_U8 {
                     let idx = LocalPos::new(x, y, z).to_index();
                     assert!(idx < CHUNK_VOLUME, "index out of range: {idx}");
                     assert!(!seen[idx], "duplicate index: {idx}");

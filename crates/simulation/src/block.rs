@@ -54,6 +54,23 @@ fn builtin_blocks() -> Vec<Block> {
     ]
 }
 
+/// Разрешённые идентификаторы встроенных блоков.
+///
+/// Создаётся один раз из реестра; остальной код берёт [`BlockId`] через поля,
+/// не обращаясь к строковым именам.
+#[derive(Debug, Clone, Copy)]
+pub struct BuiltinBlocks {
+    pub air: BlockId,
+    pub grass: BlockId,
+    pub dirt: BlockId,
+    pub stone: BlockId,
+    pub sand: BlockId,
+    pub water: BlockId,
+    pub wood: BlockId,
+    pub leaves: BlockId,
+    pub planks: BlockId,
+}
+
 /// Реестр блоков.
 #[derive(Debug, Clone)]
 pub struct BlockRegistry {
@@ -112,6 +129,45 @@ impl BlockRegistry {
     #[must_use]
     pub fn get_id(&self, id: &ResourceId) -> Option<BlockId> {
         self.by_id.get(id).copied()
+    }
+
+    /// Разрешает встроенные блоки в типизированную структуру.
+    ///
+    /// # Panics
+    ///
+    /// Паникует, если встроенный блок отсутствует (невозможно при
+    /// [`BlockRegistry::new`]).
+    #[must_use]
+    pub fn builtin_blocks(&self) -> BuiltinBlocks {
+        BuiltinBlocks {
+            air: self
+                .get_id(&ResourceId::builtin("air"))
+                .expect("builtin air"),
+            grass: self
+                .get_id(&ResourceId::builtin("grass"))
+                .expect("builtin grass"),
+            dirt: self
+                .get_id(&ResourceId::builtin("dirt"))
+                .expect("builtin dirt"),
+            stone: self
+                .get_id(&ResourceId::builtin("stone"))
+                .expect("builtin stone"),
+            sand: self
+                .get_id(&ResourceId::builtin("sand"))
+                .expect("builtin sand"),
+            water: self
+                .get_id(&ResourceId::builtin("water"))
+                .expect("builtin water"),
+            wood: self
+                .get_id(&ResourceId::builtin("wood"))
+                .expect("builtin wood"),
+            leaves: self
+                .get_id(&ResourceId::builtin("leaves"))
+                .expect("builtin leaves"),
+            planks: self
+                .get_id(&ResourceId::builtin("planks"))
+                .expect("builtin planks"),
+        }
     }
 
     #[must_use]
@@ -189,6 +245,16 @@ mod tests {
         let leaves = reg.get_id(&ResourceId::builtin("leaves")).unwrap();
         assert!(reg.is_solid(leaves));
         assert!(!reg.is_opaque(leaves));
+    }
+
+    #[test]
+    fn builtin_blocks_resolve_to_distinct_ids() {
+        let reg = BlockRegistry::new();
+        let blocks = reg.builtin_blocks();
+        assert_eq!(blocks.air, BlockRegistry::AIR);
+        assert_eq!(reg.get(blocks.grass).id.path(), "grass");
+        assert_eq!(reg.get(blocks.stone).id.path(), "stone");
+        assert_eq!(reg.get(blocks.water).id.path(), "water");
     }
 
     #[test]

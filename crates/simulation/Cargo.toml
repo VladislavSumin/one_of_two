@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 hashbrown.workspace = true
+noise.workspace = true
 
 [lints]
 workspace = true
