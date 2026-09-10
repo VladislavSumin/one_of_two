@@ -109,7 +109,7 @@ apps/
 7. **`coord.rs`** — `BlockPos`, `ChunkPos`, `LocalPos` (i32), константы `CHUNK_SIZE`, конвертации `block ↔ (chunk, local)` через euclid + юнит-тесты (положительные/отрицательные/границы).
 8. **`block.rs`** — `BlockId(u16)`, `BlockRegistry` (air/grass/dirt/stone/sand/water/wood/leaves/planks), свойства `solid/transparent/opaque` + тесты.
 9. **`chunk.rs`** — `Chunk` (palette + `[u8; 4096]`), `get`/`set` блока с проверкой локальных координат + тесты (границы, round-trip).
-10. **`world.rs`** — `World { seed, chunks: HashMap<ChunkPos, Chunk> }`, `get_block`/`set_block` сквозь границы чанков + тесты. **Не забыть:** `World::chunks` — горячий путь → использовать быстрый хешер (кандидаты: `hashbrown`, `ahash`, `rustc-hash`/`FxHasher`), а не дефолтный SipHash из `std`. DoS-устойчивость не нужна (ключи внутренние); map только для lookup, без итерации (детерминизм).
+10. **`world.rs`** — `World { seed, chunks }` на `hashbrown::HashMap<ChunkPos, Chunk>` (быстрый хешер `foldhash`, DoS-устойчивость не нужна). `get_block -> Option<BlockId>` (`None` = чанк не загружен, `Some(AIR)` = пустой блок) и `set_block -> bool` (чанки создаются только явно через `insert_chunk`); `get/set` сквозь границы чанков + тесты.
 11. **`gen.rs`** — детерминированный heightmap (seeded noise) → заполнение чанка + тест на детерминированность (два прогона == одинаково, seed'ы различаются).
 12. **`raycast.rs`** — DDA voxel raycast: `(hit: BlockPos, face: Direction)` + таблица тестов (луч вдоль осей, диагонали, сквозь прозрачные блоки).
 13. **Интеграционные тесты** — `tests/world_integration.rs`: set/get через границы чанков, ген-детерминизм.

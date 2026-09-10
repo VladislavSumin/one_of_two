@@ -4,3 +4,4 @@ pub mod block;
 pub mod chunk;
 pub mod coord;
 pub mod id;
+pub mod world;

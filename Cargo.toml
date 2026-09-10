@@ -10,6 +10,7 @@ edition = "2021"
 simulation = { path = "crates/simulation" }
 client = { path = "crates/client" }
 bevy = "0.19.1"
+hashbrown = "0.17.1"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
